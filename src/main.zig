@@ -28,7 +28,9 @@ pub fn main() !void {
     std.mem.copy(u8, new_file[0..], file);
     std.mem.copy(u8, new_file[file.len..], ".asm");
 
-    var r = parser.fileParse(allocator, result).parse();
+    var r = try parser.fileParse(allocator, result).parse(&[_]u8{
+        4, 6, 8, 10, 12, 14, 16, 18, 20,
+    });
     const p = r.reader();
     var write = try std.fs.cwd().createFile(new_file, .{});
     defer write.close();
