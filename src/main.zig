@@ -1,19 +1,28 @@
 const std = @import("std");
 
 pub fn main() !void {
-    // Prints to stderr (it's a shortcut based on `std.io.getStdErr()`)
-    std.debug.print("All your {s} are belong to us.\n", .{"codebase"});
+    const allocator = std.heap.c_allocator;
 
-    // stdout is for the actual output of your application, for example if you
-    // are implementing gzip, then only the compressed bytes should be sent to
-    // stdout, not any debugging messages.
-    const stdout_file = std.io.getStdOut().writer();
-    var bw = std.io.bufferedWriter(stdout_file);
-    const stdout = bw.writer();
+    const iter = try std.process.argsAlloc(allocator);
 
-    try stdout.print("Run `zig build test` to run the tests.\n", .{});
+    if (iter.len == 1) {
+        std.debug.print("Usage: {s} [args]\n", .{iter.ptr[0]});
+        return;
+    }
 
-    try bw.flush(); // don't forget to flush!
+    if (iter.len > 2) {
+        std.debug.print("Too many args!\n", .{});
+        return;
+    }
+
+    const file = iter.ptr[1];
+
+    var result = try std.fs.cwd().openFile(file, .{});
+    defer result.close();
+
+    const file_size = try result.getEndPos();
+
+    std.debug.print("File size: {d}\n", .{file_size});
 }
 
 test "simple test" {
