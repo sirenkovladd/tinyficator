@@ -28,9 +28,8 @@ const Generator = struct {
             "generate",
             "Generate file",
         );
-        // step.dependOn(&exe.step);
-        const install_exe = b.addInstallArtifact(exe, .{});
-        step.dependOn(&install_exe.step);
+        const run_cmd = b.addRunArtifact(exe);
+        step.dependOn(&run_cmd.step);
     }
 };
 
@@ -39,13 +38,20 @@ const Main = struct {
     target: *const std.zig.CrossTarget,
     optimize: *const std.builtin.OptimizeMode,
 
+    fn getName(optimize: *const std.builtin.OptimizeMode) []const u8 {
+        if (optimize.* == std.builtin.OptimizeMode.Debug) {
+            return "tinyficator-debug";
+        }
+        return "tinyficator";
+    }
+
     pub fn init(
         b: *std.Build,
         target: *const std.zig.CrossTarget,
         optimize: *const std.builtin.OptimizeMode,
     ) *const Main {
         const exe = b.addExecutable(.{
-            .name = "tinyficator",
+            .name = getName(optimize),
             .root_source_file = .{ .path = "src/main.zig" },
             .target = target.*,
             .optimize = optimize.*,
@@ -65,7 +71,6 @@ const Main = struct {
         if (args) |arg| {
             run_cmd.addArgs(arg);
         }
-        run_cmd.step.dependOn(b.getInstallStep());
         const run_step = b.step("run", "Run the app");
         run_step.dependOn(&run_cmd.step);
     }

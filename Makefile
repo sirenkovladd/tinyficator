@@ -1,21 +1,18 @@
-test:
+test: src/*.zig
 	zig build test
 
-build-debug:
+zig-out/bin/tinyficator-debug: src/*.zig
 	zig build -Doptimize=Debug
 
-build-release:
+zig-out/bin/tinyficator: src/*.zig
 	zig build -Doptimize=ReleaseFast
 
-zig-out/bin/generate-file: src/generate-file.zig
+test_file/1.txt: src/generate-file.zig
+	mkdir -p test_file
 	zig build generate
 
-test_file/1.txt: zig-out/bin/generate-file
-	mkdir -p test_file
-	./zig-out/bin/generate-file
+debug: zig-out/bin/tinyficator-debug test_file/1.txt
+	./zig-out/bin/tinyficator-debug ./test_file/1.txt
 
-debug: build-debug test_file/1.txt
-	./zig-out/bin/tinyficator ./test_file/1.txt
-
-release: build-release generate
+release: zig-out/bin/tinyficator genertest_file/1.txtate
 	./zig-out/bin/tinyficator ./test_file/1.txt
