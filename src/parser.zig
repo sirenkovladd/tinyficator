@@ -50,7 +50,7 @@ pub const ParserHeader = struct {
 };
 
 pub const NeedParsed = struct {
-    const Error = std.mem.Allocator.Error || std.fs.File.Reader.Error;
+    const Error = std.mem.Allocator.Error || std.fs.File.Reader.Error || std.fs.File.SeekError;
 
     allocator: std.mem.Allocator,
     file: std.fs.File,
@@ -93,6 +93,7 @@ pub const NeedParsed = struct {
             }
         }
 
+        try self.file.seekTo(0);
         const ret = ParsedFile.init(lessParser.header(), r);
         return ret;
     }

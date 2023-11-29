@@ -12,7 +12,7 @@ test_file/1.txt: src/generate-file.zig
 	zig build generate
 
 debug: zig-out/bin/tinyficator-debug test_file/1.txt
-	./zig-out/bin/tinyficator-debug ./test_file/1.txt
+	./zig-out/bin/tinyficator-debug enc ./test_file/1.txt
 
-release: zig-out/bin/tinyficator genertest_file/1.txtate
-	./zig-out/bin/tinyficator ./test_file/1.txt
+release: zig-out/bin/tinyficator test_file/1.txt
+	./zig-out/bin/tinyficator enc ./test_file/1.txt

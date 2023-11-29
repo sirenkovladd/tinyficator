@@ -1,24 +1,47 @@
 const std = @import("std");
 const parser = @import("parser.zig");
 
+const t = enum { enc, dec };
+
+fn getType(typ: []const u8) !t {
+    if (std.mem.eql(u8, typ, "enc")) {
+        return .enc;
+    } else if (std.mem.eql(u8, typ, "dec")) {
+        return .dec;
+    } else {
+        std.debug.print("Unknown type: {s}\n", .{typ});
+        return error.InvalidType;
+    }
+}
+
 pub fn main() !void {
     const allocator = std.heap.c_allocator;
-
     const iter = try std.process.argsAlloc(allocator);
 
     if (iter.len == 1) {
-        std.debug.print("Usage: {s} [args]\n", .{iter.ptr[0]});
+        std.debug.print("Usage: {s} (enc|dec) [args]\n", .{iter.ptr[0]});
         return;
     }
 
-    if (iter.len > 2) {
+    const typ = getType(iter.ptr[1]) catch return;
+
+    if (iter.len > 3) {
         std.debug.print("Too many args!\n", .{});
         return;
     }
 
-    const file = iter.ptr[1];
+    const file = iter.ptr[2];
+    switch (typ) {
+        .enc => try encode(allocator, file),
+        .dec => try decode(allocator, file),
+    }
+}
 
-    var result = try std.fs.cwd().openFile(file, .{});
+fn encode(allocator: std.mem.Allocator, file: []const u8) !void {
+    var result = std.fs.cwd().openFile(file, .{}) catch |err| {
+        std.debug.print("Error opening file: {}\n", .{err});
+        return;
+    };
     defer result.close();
 
     const file_size = try result.getEndPos();
@@ -46,4 +69,11 @@ pub fn main() !void {
     }
 
     std.debug.print("File size: {d}\n", .{file_size});
+}
+
+fn decode(allocator: std.mem.Allocator, file: []const u8) !void {
+    _ = allocator;
+    _ = file;
+
+    std.log.err("Not implemented yet!\n", .{});
 }
