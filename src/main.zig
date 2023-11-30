@@ -55,9 +55,6 @@ fn encode(allocator: std.mem.Allocator, file: []const u8) !void {
     const rangeTo = 25;
     var parseLen: [rangeTo - rangeFrom]u8 = undefined;
     for (rangeFrom..rangeTo) |i| parseLen[i - 3] = @as(u8, @truncate(i));
-    // var expectedSize: u64 = 0;
-    // for (parseLen) |len| expectedSize += len * std.math.pow(u64, 2, len);
-    // std.debug.print("Expected size: {d} bytes\n", .{expectedSize / 8});
 
     var r = try parser.fileParse(allocator, result).parse(&parseLen);
     const p = r.reader();

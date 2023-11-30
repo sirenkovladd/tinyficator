@@ -1,7 +1,17 @@
 const std = @import("std");
-const CustomInt = @import("custom-int.zig");
 
-pub const ParsedHeader = struct {};
+pub const ParsedHeader = struct {
+    size: u8,
+    map: []typeMap,
+    len: u64 = 123,
+
+    pub fn init(ph: *const ParserHeader) ParsedHeader {
+        return ParsedHeader{
+            .size = ph.size,
+            .map = ph.map,
+        };
+    }
+};
 
 pub const ParsedFile = struct {
     header: ParsedHeader,
@@ -17,47 +27,60 @@ pub const ParsedFile = struct {
     }
 };
 
+// TODO self dynamic type
+const typeMap = u32;
+
 pub const ParserHeader = struct {
-    // allocator: std.mem.Allocator,
-    // file: std.fs.File,
-    map: []CustomInt,
+    parsedHeader: ?ParsedHeader = null,
     allocator: std.mem.Allocator,
+    n: u64 = 0,
+    used_len: u8 = 0,
+    size: u8,
+    map: []typeMap,
 
     pub fn init(allocator: std.mem.Allocator, size: u8) std.mem.Allocator.Error!ParserHeader {
-        const d = try allocator.alloc(CustomInt, @as(usize, 1) << @intCast(size));
+        const d = try allocator.alloc(typeMap, @as(usize, 1) << @intCast(size));
         for (d) |*i| {
-            i.* = try CustomInt.init(allocator, size);
+            i.* = 0;
         }
 
-        return ParserHeader{ .map = d, .allocator = allocator };
+        return ParserHeader{ .allocator = allocator, .size = size, .map = d };
     }
 
     pub fn deinit(self: *const ParserHeader) void {
-        for (self.map) |*i| {
-            i.deinit(self.allocator);
-        }
         self.allocator.free(self.map);
     }
 
-    pub fn load(ph: ParserHeader, buffer: []const u8) void {
-        _ = ph;
-        _ = buffer;
+    pub fn load(ph: *ParserHeader, buffer: []const u8) void {
+        ph.parsedHeader = null;
+        for (buffer) |b| {
+            ph.n = ph.n << 8 | @as(u64, b);
+            ph.used_len += 8;
+            while (ph.used_len >= ph.size) {
+                const ll: u6 = @intCast(ph.used_len - ph.size);
+                const index = @as(usize, ph.n >> ll);
+                ph.map[index] += 1;
+                ph.n &= (@as(u64, 1) << ll) - 1;
+                ph.used_len -= ph.size;
+            }
+        }
     }
 
-    pub fn finish(ph: ParserHeader) void {
-        _ = ph;
+    pub fn finish(ph: *ParserHeader) void {
+        ph.calcHeader();
     }
 
-    pub fn len(ph: ParserHeader) usize {
-        _ = ph;
-
-        return 0;
+    pub fn len(self: *ParserHeader) u64 {
+        return self.getParsed().len;
     }
 
-    pub fn header(ph: ParserHeader) ParsedHeader {
-        _ = ph;
+    pub fn getParsed(self: *ParserHeader) ParsedHeader {
+        if (self.parsedHeader == null) self.calcHeader();
+        return self.parsedHeader.?;
+    }
 
-        return ParsedHeader{};
+    fn calcHeader(ph: *ParserHeader) void {
+        ph.parsedHeader = ParsedHeader.init(ph);
     }
 };
 
@@ -92,18 +115,22 @@ pub const NeedParsed = struct {
                 break;
             }
 
-            for (parsers) |parser| {
+            for (parsers) |*parser| {
                 parser.load(buffer[0..n]);
             }
         }
-        for (parsers) |parser| {
+
+        for (parsers) |*parser| {
             parser.finish();
         }
 
-        var less: usize = std.math.maxInt(usize);
-        var lessParser: ParserHeader = undefined;
-        for (parsers) |parser| {
+        // std.time.sleep(1e10);
+
+        var less: u64 = std.math.maxInt(usize);
+        var lessParser: *ParserHeader = undefined;
+        for (parsers) |*parser| {
             const len = parser.len();
+            // std.debug.print("len: {}, size: {}\n", .{ len, parser.size });
             if (len < less) {
                 less = len;
                 lessParser = parser;
@@ -111,7 +138,7 @@ pub const NeedParsed = struct {
         }
 
         try self.file.seekTo(0);
-        const ret = ParsedFile.init(lessParser.header(), r);
+        const ret = ParsedFile.init(lessParser.getParsed(), r);
         return ret;
     }
 };
