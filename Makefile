@@ -11,8 +11,12 @@ test_file/1.txt: src/generate-file.zig
 	mkdir -p test_file
 	zig build generate
 
-debug: zig-out/bin/tinyficator-debug test_file/1.txt
+build-debug: zig-out/bin/tinyficator-debug
+
+build-release: zig-out/bin/tinyficator
+
+debug: build-debug test_file/1.txt
 	./zig-out/bin/tinyficator-debug enc ./test_file/1.txt
 
-release: zig-out/bin/tinyficator test_file/1.txt
+release: build-release test_file/1.txt
 	./zig-out/bin/tinyficator enc ./test_file/1.txt

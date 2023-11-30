@@ -1,4 +1,5 @@
 const std = @import("std");
+const CustomInt = @import("custom-int.zig");
 
 pub const ParsedHeader = struct {};
 
@@ -19,12 +20,23 @@ pub const ParsedFile = struct {
 pub const ParserHeader = struct {
     // allocator: std.mem.Allocator,
     // file: std.fs.File,
+    map: []CustomInt,
+    allocator: std.mem.Allocator,
 
-    pub fn init(allocator: std.mem.Allocator, size: u8) ParserHeader {
-        _ = allocator;
-        _ = size;
+    pub fn init(allocator: std.mem.Allocator, size: u8) std.mem.Allocator.Error!ParserHeader {
+        const d = try allocator.alloc(CustomInt, @as(usize, 1) << @intCast(size));
+        for (d) |*i| {
+            i.* = try CustomInt.init(allocator, size);
+        }
 
-        return ParserHeader{};
+        return ParserHeader{ .map = d, .allocator = allocator };
+    }
+
+    pub fn deinit(self: *const ParserHeader) void {
+        for (self.map) |*i| {
+            i.deinit(self.allocator);
+        }
+        self.allocator.free(self.map);
     }
 
     pub fn load(ph: ParserHeader, buffer: []const u8) void {
@@ -61,9 +73,14 @@ pub const NeedParsed = struct {
 
     pub fn parse(self: NeedParsed, possibleLen: []const u8) Error!ParsedFile {
         const parsers = try self.allocator.alloc(ParserHeader, possibleLen.len);
-        defer self.allocator.free(parsers);
+        defer {
+            for (parsers) |parser| {
+                parser.deinit();
+            }
+            self.allocator.free(parsers);
+        }
         for (0.., possibleLen) |i, len| {
-            parsers[i] = ParserHeader.init(self.allocator, len);
+            parsers[i] = try ParserHeader.init(self.allocator, len);
         }
 
         const r = self.file.reader();

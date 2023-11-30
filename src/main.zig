@@ -51,9 +51,15 @@ fn encode(allocator: std.mem.Allocator, file: []const u8) !void {
     std.mem.copy(u8, new_file[0..], file);
     std.mem.copy(u8, new_file[file.len..], ".asm");
 
-    var r = try parser.fileParse(allocator, result).parse(&[_]u8{
-        4, 6, 8, 10, 12, 14, 16, 18, 20,
-    });
+    const rangeFrom = 3;
+    const rangeTo = 25;
+    var parseLen: [rangeTo - rangeFrom]u8 = undefined;
+    for (rangeFrom..rangeTo) |i| parseLen[i - 3] = @as(u8, @truncate(i));
+    // var expectedSize: u64 = 0;
+    // for (parseLen) |len| expectedSize += len * std.math.pow(u64, 2, len);
+    // std.debug.print("Expected size: {d} bytes\n", .{expectedSize / 8});
+
+    var r = try parser.fileParse(allocator, result).parse(&parseLen);
     const p = r.reader();
     var write = try std.fs.cwd().createFile(new_file, .{});
     defer write.close();
